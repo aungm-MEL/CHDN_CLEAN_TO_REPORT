@@ -1,5 +1,6 @@
 import tempfile
 import time
+from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
@@ -19,6 +20,10 @@ if "report_error" not in st.session_state:
     st.session_state.report_error = None
 if "report_elapsed" not in st.session_state:
     st.session_state.report_elapsed = None
+if "report_exported_stamp" not in st.session_state:
+    st.session_state.report_exported_stamp = None
+if "report_exported_label" not in st.session_state:
+    st.session_state.report_exported_label = None
 
 uploaded_file = st.file_uploader("Upload the cleaned CHDN workbook", type=["xlsx", "xlsm"])
 
@@ -32,8 +37,15 @@ if uploaded_file is not None:
         st.session_state.report_status = None
         st.session_state.report_error = None
         st.session_state.report_elapsed = None
+        st.session_state.report_exported_stamp = None
+        st.session_state.report_exported_label = None
 
-        output_path = Path(__file__).resolve().with_name("report_output.xlsx")
+        exported_at = datetime.now()
+        exported_stamp = exported_at.strftime("%Y%m%d_%H%M%S")
+        exported_label = exported_at.strftime("%Y-%m-%d %H:%M:%S")
+        st.session_state.report_exported_stamp = exported_stamp
+        st.session_state.report_exported_label = exported_label
+        output_path = Path(__file__).resolve().with_name(f"report_output_{exported_stamp}.xlsx")
         if output_path.exists():
             output_path.unlink()
 
@@ -59,10 +71,12 @@ if uploaded_file is not None:
         st.success("Report step completed successfully.")
         if st.session_state.report_elapsed is not None:
             st.caption(f"Runtime: {st.session_state.report_elapsed} seconds")
+        if st.session_state.report_exported_label is not None:
+            st.caption(f"Exported at: {st.session_state.report_exported_label}")
         st.download_button(
             label="Download report workbook",
             data=st.session_state.report_data,
-            file_name="CHDN_report.xlsx",
+            file_name=f"CHDN_report_{st.session_state.report_exported_stamp or 'export'}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     elif st.session_state.report_status is not None:
