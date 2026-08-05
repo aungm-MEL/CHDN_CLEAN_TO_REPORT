@@ -671,7 +671,7 @@ def step_add_alod_columns() -> None:
         ]
         .groupby(["township_name_MIMU", "Session Point", "period"])["children_code(T/C Code)"]
         .nunique()
-        .reset_index(name="ALOD-U1")
+        .reset_index(name="ALOD_U1")
     )
 
     u5_counts = (
@@ -680,14 +680,14 @@ def step_add_alod_columns() -> None:
         ]
         .groupby(["township_name_MIMU", "Session Point", "period"])["children_code(T/C Code)"]
         .nunique()
-        .reset_index(name="ALOD-U5")
+        .reset_index(name="ALOD_U5")
     )
 
     gt5_counts = (
         alod_base[alod_base["age_first_num"] >= 60]
         .groupby(["township_name_MIMU", "Session Point", "period"])["children_code(T/C Code)"]
         .nunique()
-        .reset_index(name="ALOD->5")
+        .reset_index(name="ALOD_>5")
     )
 
     alod_counts = u1_counts.merge(u5_counts, on=["township_name_MIMU", "Session Point", "period"], how="outer").merge(
@@ -695,7 +695,7 @@ def step_add_alod_columns() -> None:
     )
 
     alod_counts = alod_counts.fillna(0)
-    for col in ["ALOD-U1", "ALOD-U5", "ALOD->5"]:
+    for col in ["ALOD_U1", "ALOD_U5", "ALOD_>5"]:
         alod_counts[col] = alod_counts[col].astype(int)
 
     alod_counts = alod_counts.rename(
@@ -709,15 +709,15 @@ def step_add_alod_columns() -> None:
     summary_df["Clinic Name"] = summary_df["Clinic Name"].apply(normalize_text)
     summary_df["Twp_MIMU"] = summary_df["Twp_MIMU"].apply(normalize_text)
 
-    summary_df = summary_df.drop(columns=[c for c in ["ALOD-U1", "ALOD-U5", "ALOD->5"] if c in summary_df.columns])
+    summary_df = summary_df.drop(columns=[c for c in ["ALOD_U1", "ALOD_U5", "ALOD_>5"] if c in summary_df.columns])
 
     summary_df = summary_df.merge(
-        alod_counts[["Twp_MIMU", "Clinic Name", "period", "ALOD-U1", "ALOD-U5", "ALOD->5"]],
+        alod_counts[["Twp_MIMU", "Clinic Name", "period", "ALOD_U1", "ALOD_U5", "ALOD_>5"]],
         on=["Twp_MIMU", "Clinic Name", "period"],
         how="left",
     )
 
-    for col in ["ALOD-U1", "ALOD-U5", "ALOD->5"]:
+    for col in ["ALOD_U1", "ALOD_U5", "ALOD_>5"]:
         summary_df[col] = pd.to_numeric(summary_df[col], errors="coerce").fillna(0).astype(int)
 
     print(f"Updated summary shape: {summary_df.shape}")
@@ -737,9 +737,9 @@ def step_add_alod_columns() -> None:
 
     wb.save(OUTPUT_FILE)
     print("OK: ALOD columns added")
-    print(f"  Total ALOD-U1: {summary_df['ALOD-U1'].sum()}")
-    print(f"  Total ALOD-U5: {summary_df['ALOD-U5'].sum()}")
-    print(f"  Total ALOD->5: {summary_df['ALOD->5'].sum()}")
+    print(f"  Total ALOD_U1: {summary_df['ALOD_U1'].sum()}")
+    print(f"  Total ALOD_U5: {summary_df['ALOD_U5'].sum()}")
+    print(f"  Total ALOD_>5: {summary_df['ALOD_>5'].sum()}")
 
 
 def step_add_vaccine_columns() -> None:
@@ -977,7 +977,7 @@ def step_add_vaccine_columns() -> None:
         new_rows["District (EHO)"] = ""
         new_rows["Township_EHO"] = ""
         new_rows["Year"] = new_rows["period"].astype(str).str.split("_").str[1]
-        for col in vaccine_col_order + ["ALOD-U1", "ALOD-U5", "ALOD->5", "CD_U1", "CD_U5", "CD_>5", "Td1", "Td2", "Td At least one dose"]:
+        for col in vaccine_col_order + ["ALOD_U1", "ALOD_U5", "ALOD_>5", "CD_U1", "CD_U5", "CD_>5", "Td1", "Td2", "Td At least one dose"]:
             new_rows[col] = 0
         for col in summary_df.columns:
             if col not in new_rows.columns:
@@ -999,7 +999,7 @@ def step_add_vaccine_columns() -> None:
     for col_name, mapping in td_columns_to_add.items():
         summary_df[col_name] = summary_df["key"].map(mapping).fillna(0).astype(int)
 
-    alod_cols = ["ALOD-U1", "ALOD-U5", "ALOD->5"]
+    alod_cols = ["ALOD_U1", "ALOD_U5", "ALOD_>5"]
     alod_missing = any(col not in summary_df.columns for col in alod_cols)
     alod_zero_only = False
     if not alod_missing:
@@ -1021,9 +1021,9 @@ def step_add_vaccine_columns() -> None:
             .rename(columns={
                 "township_name_MIMU": "Twp_MIMU",
                 "Session Point": "Clinic Name",
-                "U1": "ALOD-U1",
-                "U5": "ALOD-U5",
-                ">5": "ALOD->5",
+                "U1": "ALOD_U1",
+                "U5": "ALOD_U5",
+                ">5": "ALOD_>5",
             })
         )
         alod_counts["Twp_MIMU"] = alod_counts["Twp_MIMU"].apply(normalize_text)
@@ -1038,7 +1038,7 @@ def step_add_vaccine_columns() -> None:
             summary_df[col] = pd.to_numeric(summary_df[col], errors="coerce").fillna(0).astype(int)
 
     summary_df = summary_df.drop(columns=["key"])
-    base_cols = ["Year", "period", "Organization", "Project Name", "District (EHO)", "Township_EHO", "Twp_MIMU", "Clinic Name", "ALOD-U1", "ALOD-U5", "ALOD->5"]
+    base_cols = ["Year", "period", "Organization", "Project Name", "District (EHO)", "Township_EHO", "Twp_MIMU", "Clinic Name", "ALOD_U1", "ALOD_U5", "ALOD_>5"]
     final_col_order = base_cols + vaccine_col_order + ["CD_U1", "CD_U5", "CD_>5", "Td1", "Td2", "Td At least one dose"]
 
     for col in final_col_order:
@@ -1109,9 +1109,9 @@ def step_add_cumulative_sheet() -> None:
             "year": year,
             "township_name_MIMU": township,
             "Session Point": clinic,
-            "ALOD-U1": alod_u1,
-            "ALOD-U5": alod_u5,
-            "ALOD->5": alod_gt5,
+            "ALOD_U1": alod_u1,
+            "ALOD_U5": alod_u5,
+            "ALOD_>5": alod_gt5,
         })
 
     alod_df = pd.DataFrame(alod_data)
@@ -1149,12 +1149,12 @@ def step_add_cumulative_sheet() -> None:
         "township_name_MIMU": "Twp_MIMU",
         "Session Point": "Clinic Name",
     })
-    summary_cumulative["ALOD-U1"] = alod_df["ALOD-U1"].values
-    summary_cumulative["ALOD-U5"] = alod_df["ALOD-U5"].values
-    summary_cumulative["ALOD->5"] = alod_df["ALOD->5"].values
+    summary_cumulative["ALOD_U1"] = alod_df["ALOD_U1"].values
+    summary_cumulative["ALOD_U5"] = alod_df["ALOD_U5"].values
+    summary_cumulative["ALOD_>5"] = alod_df["ALOD_>5"].values
     summary_cumulative["Td At least one dose"] = alod_df["Td At least one dose"].values
 
-    final_cols = ["Organization", "period", "Project Name", "District (EHO)", "Township_EHO", "Twp_MIMU", "Clinic Name", "ALOD-U1", "ALOD-U5", "ALOD->5", "Td At least one dose"]
+    final_cols = ["Organization", "period", "Project Name", "District (EHO)", "Township_EHO", "Twp_MIMU", "Clinic Name", "ALOD_U1", "ALOD_U5", "ALOD_>5", "Td At least one dose"]
     summary_cumulative = summary_cumulative[final_cols]
     summary_cumulative = summary_cumulative.drop_duplicates()
     summary_cumulative = summary_cumulative.sort_values(["period", "Clinic Name"]).reset_index(drop=True)
@@ -1180,9 +1180,9 @@ def step_add_cumulative_sheet() -> None:
     print("\nYearly Cumulative Summary:")
     print(f"  Total rows: {len(summary_cumulative)}")
     print(f"  Periods (years): {sorted(summary_cumulative['period'].unique())}")
-    print(f"  Total ALOD-U1: {summary_cumulative['ALOD-U1'].sum()}")
-    print(f"  Total ALOD-U5: {summary_cumulative['ALOD-U5'].sum()}")
-    print(f"  Total ALOD->5: {summary_cumulative['ALOD->5'].sum()}")
+    print(f"  Total ALOD_U1: {summary_cumulative['ALOD_U1'].sum()}")
+    print(f"  Total ALOD_U5: {summary_cumulative['ALOD_U5'].sum()}")
+    print(f"  Total ALOD_>5: {summary_cumulative['ALOD_>5'].sum()}")
     print(f"  Total Td at least one dose: {summary_cumulative['Td At least one dose'].sum()}")
 
     print("\n" + "=" * 40)
@@ -1209,9 +1209,9 @@ def step_add_cumulative_sheet() -> None:
             "Township_EHO": "",
             "Twp_MIMU": township,
             "Clinic Name": clinic,
-            "ALOD-U1": alod_u1,
-            "ALOD-U5": alod_u5,
-            "ALOD->5": alod_gt5,
+            "ALOD_U1": alod_u1,
+            "ALOD_U5": alod_u5,
+            "ALOD_>5": alod_gt5,
             "Td At least one dose": td_dose,
         })
 
@@ -1235,9 +1235,9 @@ def step_add_cumulative_sheet() -> None:
     print("Successfully added 'cumulative' sheet")
     print("\nOverall Cumulative Summary:")
     print(f"  Total rows: {len(summary_overall)}")
-    print(f"  Total ALOD-U1: {summary_overall['ALOD-U1'].sum()}")
-    print(f"  Total ALOD-U5: {summary_overall['ALOD-U5'].sum()}")
-    print(f"  Total ALOD->5: {summary_overall['ALOD->5'].sum()}")
+    print(f"  Total ALOD_U1: {summary_overall['ALOD_U1'].sum()}")
+    print(f"  Total ALOD_U5: {summary_overall['ALOD_U5'].sum()}")
+    print(f"  Total ALOD_>5: {summary_overall['ALOD_>5'].sum()}")
     print(f"  Total Td at least one dose: {summary_overall['Td At least one dose'].sum()}")
 
 
