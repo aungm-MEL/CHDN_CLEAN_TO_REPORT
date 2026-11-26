@@ -1817,7 +1817,7 @@ def step_add_multi_year_alod_cummu() -> None:
 
 
 def step_add_multi_year_idp() -> None:
-    """Add IDP sheet."""
+    """Add quarterly IDP and annual sums of the quarterly counts."""
     print_header("Step 11: Add IDP Sheet")
 
     print("Reading source data and template...")
@@ -1905,6 +1905,29 @@ def step_add_multi_year_idp() -> None:
             out_df[col] = None
     out_df = out_df[template_df.columns]
 
+    normalized_columns = [str(column).strip() for column in out_df.columns]
+    if len(set(normalized_columns)) != len(normalized_columns):
+        raise ValueError("IDP template contains duplicate column names after trimming whitespace")
+    quarterly_df = out_df.copy()
+    quarterly_df.columns = normalized_columns
+    metadata_columns = ["Period", "Organization", "Project Name", "indicator"]
+    count_columns = ["IDP Male", "IDP Female", "non-IDP Male", "non-IDP Female"]
+    required_columns = metadata_columns + [
+        f"Q{quarter} {category}"
+        for category in count_columns
+        for quarter in range(1, 5)
+    ]
+    missing_columns = [column for column in required_columns if column not in quarterly_df.columns]
+    if missing_columns:
+        raise ValueError(f"IDP template is missing required columns: {missing_columns}")
+
+    annual_df = quarterly_df[metadata_columns].copy()
+    for category in count_columns:
+        quarter_columns = [f"Q{quarter} {category}" for quarter in range(1, 5)]
+        annual_df[category] = (
+            quarterly_df[quarter_columns].apply(pd.to_numeric, errors="raise").fillna(0).sum(axis=1)
+        )
+
     print("\nFinal IDP rows:")
     print(out_df.to_string(index=False))
 
@@ -1918,8 +1941,17 @@ def step_add_multi_year_idp() -> None:
     for row_idx, row_data in enumerate(out_df.itertuples(index=False, name=None), 2):
         for col_idx, value in enumerate(row_data, 1):
             ws.cell(row=row_idx, column=col_idx, value=value)
+    if "IDP_annual" in wb.sheetnames:
+        del wb["IDP_annual"]
+    annual_ws = wb.create_sheet("IDP_annual")
+    for col_idx, col_name in enumerate(annual_df.columns, 1):
+        annual_ws.cell(row=1, column=col_idx, value=col_name)
+    for row_idx, row_data in enumerate(annual_df.itertuples(index=False, name=None), 2):
+        for col_idx, value in enumerate(row_data, 1):
+            annual_ws.cell(row=row_idx, column=col_idx, value=value)
     wb.save(OUTPUT_FILE)
     print(f"\nAdded 'IDP' sheet to {OUTPUT_FILE.name} with {len(out_df)} rows")
+    print(f"Added 'IDP_annual' sheet with {len(annual_df)} rows")
 
 
 def step_add_multi_year_td2_indicator() -> None:
@@ -2091,6 +2123,7 @@ def main() -> int:
         print(" - Td_ALOD")
         print(" - ALOD_cummu")
         print(" - IDP")
+        print(" - IDP_annual")
         print(" - Td2_indicator")
 
         return 0
